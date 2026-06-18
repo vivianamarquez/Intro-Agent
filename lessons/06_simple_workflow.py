@@ -65,13 +65,18 @@ async def run_teaching_workflow(student_message: str) -> str:
     # trace() groups the steps so you can inspect the workflow later.
     with trace("Simple teaching workflow"):
         # Step 1: use an agent to turn messy language into structured data.
+        print("Step 1: extracting the student's request...")
         request_result = await Runner.run(extractor_agent, student_message)
         request = request_result.final_output
+        print(f"Step 1 done: topic={request.topic}, wants_code={request.wants_code}")
 
         # Step 2: use normal Python to make a deterministic workflow decision.
+        print("Step 2: choosing the course note...")
         note = course_notes[request.topic]
+        print("Step 2 done: course note selected")
 
         # Step 3: give the second agent only the information it needs.
+        print("Step 3: drafting the final answer...")
         answer_input = f"""
         Student question:
         {student_message}
@@ -84,6 +89,7 @@ async def run_teaching_workflow(student_message: str) -> str:
         """
 
         answer_result = await Runner.run(answer_agent, answer_input)
+        print("Step 3 done: final answer drafted")
 
     return answer_result.final_output
 

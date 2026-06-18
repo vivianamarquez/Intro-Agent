@@ -14,6 +14,7 @@ Each lesson adds one new idea. Run them in order and read the comments as you go
 | 04 | [`lessons/04_agent_with_guardrails.py`](lessons/04_agent_with_guardrails.py) | input guardrail, tool guardrail, output guardrail |
 | 05 | [`lessons/05_agent_and_tracing.py`](lessons/05_agent_and_tracing.py) | tracing one workflow across multiple agent runs |
 | 06 | [`lessons/06_simple_workflow.py`](lessons/06_simple_workflow.py) | a tiny app-owned workflow with structured output and tracing |
+| 07 | [`lessons/07_single_agent_with_tools.py`](lessons/07_single_agent_with_tools.py) | one agent owns the loop and decides when to call tools |
 
 ## Setup
 
