@@ -4,11 +4,12 @@ import os
 from agents import Agent, Runner, function_tool
 from dotenv import load_dotenv
 
+from world_cup_data import sample_question, search_matches
+
 
 # Lesson 2:
-# A function tool is a normal Python function the agent is allowed to call.
-# The SDK reads the function name, type hints, and docstring to describe the tool
-# to the model.
+# Now the agent gets one useful tool.
+# The tool searches a tiny local World Cup match dataset.
 
 load_dotenv()
 
@@ -16,39 +17,32 @@ MODEL = os.getenv("OPENAI_MODEL", "gpt-5.5")
 
 
 @function_tool
-def lookup_course_term(term: str) -> str:
-    """Look up a short definition for a term from this course."""
-    glossary = {
-        "agent": "An agent is a model plus instructions, tools, and runtime behavior.",
-        "tool": "A tool is a capability the agent can call, like a Python function.",
-        "handoff": "A handoff lets one agent pass control to another specialist agent.",
-        "guardrail": "A guardrail checks input, tool behavior, or output before work continues.",
-        "trace": "A trace is a record of what happened during an agent run.",
-    }
-
-    # Keep the tool deterministic so students can predict what it returns.
-    clean_term = term.strip().lower()
-    return glossary.get(clean_term, f"No course definition found for {term!r}.")
+def search_world_cup_matches(query: str) -> str:
+    """Search the classroom World Cup match list."""
+    print(f"Tool called: search_world_cup_matches(query={query!r})")
+    return search_matches(query)
 
 
 agent = Agent(
-    name="Glossary coach",
+    name="World Cup schedule helper",
     instructions=(
-        "You teach the OpenAI Agents SDK. "
-        "When the user asks about a course term, call lookup_course_term first. "
-        "Then explain the term in plain language."
+        "You help fans answer World Cup match questions. "
+        "Use search_world_cup_matches when the user asks about teams, cities, "
+        "dates, matches, scores, or schedules. Keep answers short."
     ),
     model=MODEL,
-    tools=[lookup_course_term],
+    tools=[search_world_cup_matches],
 )
 
 
 async def main() -> None:
-    result = await Runner.run(
-        agent,
-        "In this course, what does handoff mean?",
-    )
+    user_question = input("Ask about a World Cup match, team, city, or date: ").strip()
+    if not user_question:
+        user_question = sample_question()
+        print(f"Using sample question: {user_question}")
 
+    result = await Runner.run(agent, user_question)
+    print()
     print(result.final_output)
 
 

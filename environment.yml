@@ -8,3 +8,4 @@ dependencies:
       - openai-agents
       - python-dotenv
       - pydantic
+      - streamlit

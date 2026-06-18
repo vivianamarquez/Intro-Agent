@@ -4,6 +4,13 @@ import os
 from agents import Agent, Runner, function_tool, trace
 from dotenv import load_dotenv
 
+from world_cup_data import (
+    lookup_team_note,
+    lookup_venue_note,
+    sample_question,
+    search_matches,
+)
+
 
 # Lesson 7:
 # This is the contrast with Lesson 6.
@@ -21,70 +28,51 @@ load_dotenv()
 MODEL = os.getenv("OPENAI_MODEL", "gpt-5.5")
 
 
-course_notes = {
-    "agent": "An agent is a model plus instructions, tools, and runtime behavior.",
-    "tool": "A tool is a Python function the agent can call when it needs more help.",
-    "handoff": "A handoff transfers control from one agent to another specialist agent.",
-    "workflow": "A workflow is an app-owned process where Python decides the steps.",
-}
+@function_tool
+def search_world_cup_matches(query: str) -> str:
+    """Search the classroom World Cup match list."""
+    print(f"Tool called: search_world_cup_matches(query={query!r})")
+    return search_matches(query)
 
 
 @function_tool
-def lookup_course_note(topic: str) -> str:
-    """Look up a short course note by topic."""
-    clean_topic = topic.strip().lower()
-    print(f"Tool called: lookup_course_note(topic={clean_topic!r})")
-    return course_notes.get(clean_topic, f"No course note found for {topic!r}.")
+def get_team_note(team: str) -> str:
+    """Look up a short team note."""
+    print(f"Tool called: get_team_note(team={team!r})")
+    return lookup_team_note(team)
 
 
 @function_tool
-def get_tiny_example(topic: str) -> str:
-    """Return one tiny Python example for a course topic."""
-    clean_topic = topic.strip().lower()
-    print(f"Tool called: get_tiny_example(topic={clean_topic!r})")
-
-    if clean_topic == "handoff":
-        return (
-            "triage_agent = Agent(\n"
-            '    name="Triage",\n'
-            "    handoffs=[billing_agent, tech_agent],\n"
-            ")"
-        )
-
-    if clean_topic == "tool":
-        return (
-            "@function_tool\n"
-            "def lookup_course_note(topic: str) -> str:\n"
-            "    return course_notes[topic]"
-        )
-
-    return "No tiny example is available for that topic yet."
+def get_venue_note(city: str) -> str:
+    """Look up a short venue note for a host city."""
+    print(f"Tool called: get_venue_note(city={city!r})")
+    return lookup_venue_note(city)
 
 
-tutor_agent = Agent(
-    name="Agent SDK tutor",
+matchday_agent = Agent(
+    name="World Cup matchday agent",
     instructions=(
-        "You teach the OpenAI Agents SDK to beginners. "
-        "Always call lookup_course_note before answering. "
-        "If the student asks for an example or code, call get_tiny_example too. "
-        "Keep the final answer short and concrete."
+        "You help fans with World Cup matchday planning. "
+        "Decide which tools you need. Use match search for fixtures, team notes "
+        "for team context, and venue notes for city logistics. Keep answers short."
     ),
     model=MODEL,
-    tools=[lookup_course_note, get_tiny_example],
+    tools=[search_world_cup_matches, get_team_note, get_venue_note],
 )
 
 
 async def main() -> None:
-    student_message = (
-        "What is a handoff, and can you show me a tiny Python example?"
-    )
+    fan_message = input("Ask the one-run matchday agent a question: ").strip()
+    if not fan_message:
+        fan_message = sample_question()
+        print(f"Using sample question: {fan_message}")
 
     print("Starting one agent run...")
     print("Python is not choosing steps now. The agent can choose tools inside the run.")
     print()
 
-    with trace("Single agent with tools"):
-        result = await Runner.run(tutor_agent, student_message)
+    with trace("Single World Cup agent with tools"):
+        result = await Runner.run(matchday_agent, fan_message)
 
     print()
     print("Final answer:")

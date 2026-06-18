@@ -6,14 +6,20 @@ from agents import Agent, Runner, trace
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
+from world_cup_data import (
+    lookup_venue_note,
+    sample_question,
+    search_matches,
+)
+
 
 # Lesson 6:
 # A workflow is a process with steps.
-# The important difference from a chatbot is that Python owns the order:
+# The important difference from a single agent run is that Python owns the order:
 #
-# 1. First agent: read the student's message and extract a small plan.
-# 2. Plain Python: choose the right course note from that plan.
-# 3. Second agent: write the final student-facing answer.
+# 1. First agent: read the fan's request and extract a small plan.
+# 2. Plain Python: choose which local data lookups to run.
+# 3. Second agent: write the final fan-facing answer.
 #
 # This is intentionally small. The point is the shape, not complexity.
 
@@ -22,70 +28,64 @@ load_dotenv()
 MODEL = os.getenv("OPENAI_MODEL", "gpt-5.5")
 
 
-class StudentRequest(BaseModel):
-    topic: Literal["agent", "tool", "handoff", "guardrail", "trace", "unknown"]
-    wants_code: bool
-    question: str
-
-
-course_notes = {
-    "agent": "An agent is the model plus its job description and optional abilities.",
-    "tool": "A tool lets an agent call real Python code instead of only writing text.",
-    "handoff": "A handoff lets one agent transfer control to a better specialist.",
-    "guardrail": "A guardrail checks inputs, tool behavior, or outputs before work continues.",
-    "trace": "A trace shows what happened during a run, including model and tool steps.",
-    "unknown": "Ask one clarifying question before trying to answer.",
-}
+class FanRequest(BaseModel):
+    topic: Literal["match", "venue", "both", "unknown"]
+    query: str
+    city: str | None
 
 
 extractor_agent = Agent(
-    name="Request extractor",
+    name="Fan request extractor",
     instructions=(
-        "Read the student's message. "
-        "Classify the main topic and whether they want code. "
-        "Keep the question field short."
+        "Read the fan's message. Classify whether they need match info, "
+        "venue info, both, or unknown. Extract the most likely city if one appears."
     ),
     model=MODEL,
-    output_type=StudentRequest,
+    output_type=FanRequest,
 )
 
 
 answer_agent = Agent(
-    name="Teaching answer writer",
+    name="Matchday answer writer",
     instructions=(
-        "Answer like a patient beginner-friendly teacher. "
-        "Use the course note as your source of truth. "
-        "If the student wants code, include one tiny Python snippet."
+        "Answer like a helpful World Cup matchday concierge. "
+        "Use only the provided lookup notes. Keep the answer short and practical."
     ),
     model=MODEL,
 )
 
 
-async def run_teaching_workflow(student_message: str) -> str:
+async def run_matchday_workflow(fan_message: str) -> str:
     # trace() groups the steps so you can inspect the workflow later.
-    with trace("Simple teaching workflow"):
+    with trace("Simple World Cup workflow"):
         # Step 1: use an agent to turn messy language into structured data.
-        print("Step 1: extracting the student's request...")
-        request_result = await Runner.run(extractor_agent, student_message)
+        print("Step 1: extracting the fan request...")
+        request_result = await Runner.run(extractor_agent, fan_message)
         request = request_result.final_output
-        print(f"Step 1 done: topic={request.topic}, wants_code={request.wants_code}")
+        print(f"Step 1 done: topic={request.topic}, city={request.city}")
 
-        # Step 2: use normal Python to make a deterministic workflow decision.
-        print("Step 2: choosing the course note...")
-        note = course_notes[request.topic]
-        print("Step 2 done: course note selected")
+        # Step 2: use normal Python to decide which lookups to run.
+        print("Step 2: running local lookups...")
+        lookup_notes = []
+        if request.topic in {"match", "both"}:
+            lookup_notes.append(search_matches(request.query))
+        if request.topic in {"venue", "both"} and request.city:
+            lookup_notes.append(lookup_venue_note(request.city))
+        if not lookup_notes:
+            lookup_notes.append("No specific match or venue lookup was selected.")
+        print("Step 2 done: lookup notes ready")
 
         # Step 3: give the second agent only the information it needs.
         print("Step 3: drafting the final answer...")
         answer_input = f"""
-        Student question:
-        {student_message}
+        Fan question:
+        {fan_message}
 
         Extracted request:
         {request.model_dump_json(indent=2)}
 
-        Course note:
-        {note}
+        Lookup notes:
+        {chr(10).join(lookup_notes)}
         """
 
         answer_result = await Runner.run(answer_agent, answer_input)
@@ -95,12 +95,13 @@ async def run_teaching_workflow(student_message: str) -> str:
 
 
 async def main() -> None:
-    student_message = (
-        "I get that tools are functions, but when would I use a handoff instead? "
-        "Can you show a tiny example?"
-    )
+    fan_message = input("What are you trying to plan for the World Cup? ").strip()
+    if not fan_message:
+        fan_message = sample_question()
+        print(f"Using sample question: {fan_message}")
 
-    final_answer = await run_teaching_workflow(student_message)
+    final_answer = await run_matchday_workflow(fan_message)
+    print()
     print(final_answer)
     print()
     print("Trace dashboard: https://platform.openai.com/traces")
