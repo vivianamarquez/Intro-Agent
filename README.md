@@ -16,12 +16,11 @@ Each lesson adds one new idea. Run them in order and read the comments as you go
 
 ## Setup
 
-Create a virtual environment from this folder:
+Create a Conda environment from this folder:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+conda env create -f environment.yml
+conda activate intro-agent
 ```
 
 Create a local `.env` file:
