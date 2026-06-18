@@ -1,13 +1,17 @@
 import asyncio
 import os
 
-from agents import Agent, Runner
+from agents import Agent, Runner, handoff
 from dotenv import load_dotenv
 
 
 # Lesson 3:
 # A handoff is useful when a different agent should take over the answer.
 # The triage agent decides who should respond, then the specialist continues.
+#
+# Handoffs are exposed to the model as tool calls behind the scenes.
+# Tool names can only use letters, digits, and underscores, so we provide
+# clean tool_name_override values below.
 
 load_dotenv()
 
@@ -19,7 +23,8 @@ concept_coach = Agent(
     handoff_description="Use this agent for plain-language explanations of Agent SDK concepts.",
     instructions=(
         "Explain Agent SDK concepts for beginners. "
-        "Use short examples and avoid jargon when possible."
+        "Use short examples and avoid jargon when possible. "
+        "When comparing two concepts, explain the difference directly."
     ),
     model=MODEL,
 )
@@ -43,7 +48,10 @@ triage_agent = Agent(
         "Use Concept coach for explanations. Use Code coach for code."
     ),
     model=MODEL,
-    handoffs=[concept_coach, code_coach],
+    handoffs=[
+        handoff(concept_coach, tool_name_override="transfer_to_concept_coach"),
+        handoff(code_coach, tool_name_override="transfer_to_code_coach"),
+    ],
 )
 
 

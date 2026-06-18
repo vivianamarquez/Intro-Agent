@@ -6,10 +6,14 @@ from dotenv import load_dotenv
 
 
 # Lesson 1:
-# The smallest useful agent has three pieces:
+# The smallest agent has three pieces:
 # 1. a name, so it is easy to recognize in traces
 # 2. instructions, so the model knows its job
 # 3. a model, so the SDK knows what to call
+#
+# This is not very "agentic" yet.
+# It has no tools, no handoffs, no guardrails, and no memory.
+# It is mostly here so we can learn the basic SDK shape before adding power.
 
 load_dotenv()
 

@@ -13,6 +13,7 @@ Each lesson adds one new idea. Run them in order and read the comments as you go
 | 03 | [`lessons/03_simple_handoff_triage.py`](lessons/03_simple_handoff_triage.py) | triage agent, specialist agents, handoffs |
 | 04 | [`lessons/04_agent_with_guardrails.py`](lessons/04_agent_with_guardrails.py) | input guardrail, tool guardrail, output guardrail |
 | 05 | [`lessons/05_agent_and_tracing.py`](lessons/05_agent_and_tracing.py) | tracing one workflow across multiple agent runs |
+| 06 | [`lessons/06_simple_workflow.py`](lessons/06_simple_workflow.py) | a tiny app-owned workflow with structured output and tracing |
 
 ## Setup
 
@@ -38,7 +39,7 @@ Do not commit `.env`. Use `.env.example` as the shareable template.
 python lessons/01_smallest_possible_agent.py
 ```
 
-The scripts default to `gpt-5.5`, matching the OpenAI Agents SDK quickstart. To use a different model, change `OPENAI_MODEL` in your `.env` file.
+The lessons default to `gpt-5.5`, matching the OpenAI Agents SDK quickstart. To use a different model, change `OPENAI_MODEL` in your `.env` file.
 
 ## Official docs used
 
