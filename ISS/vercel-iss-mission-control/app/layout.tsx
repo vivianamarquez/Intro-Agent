@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./styles.css";
 
 export const metadata: Metadata = {
-  title: "ISS Mission Control",
-  description: "Live ISS tracker with a mission-control narrator.",
+  title: "ISS Viewing Coach",
+  description: "Live ISS tracker with a local viewing coach.",
 };
 
 export default function RootLayout({

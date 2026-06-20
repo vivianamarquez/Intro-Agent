@@ -106,21 +106,3 @@ export async function getISSLocation(): Promise<ISSLocation> {
     };
   }
 }
-
-export function deterministicMissionUpdate(location: ISSLocation): string {
-  const altitude =
-    location.altitudeKm === null
-      ? "altitude currently unavailable"
-      : `altitude ${location.altitudeKm.toLocaleString()} kilometers`;
-  const speed =
-    location.velocityKmPerHour === null
-      ? "speed currently unavailable"
-      : `speed ${location.velocityKmPerHour.toLocaleString()} kilometers per hour`;
-
-  return [
-    "Mission Control update:",
-    `The International Space Station is currently over ${location.placeName}.`,
-    `Current coordinates are ${location.latitude}, ${location.longitude}, with ${altitude} and ${speed}.`,
-    "Live signal confirmed.",
-  ].join(" ");
-}
