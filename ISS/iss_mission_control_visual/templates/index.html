@@ -76,7 +76,7 @@
       display: grid;
       gap: 1.2rem;
       margin: 0 auto;
-      max-width: 920px;
+      max-width: 1240px;
       min-height: 100vh;
       padding: 2rem;
       place-content: center;
@@ -152,6 +152,13 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 1rem;
+    }
+
+    .workbench {
+      align-items: start;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
     }
 
     .panelHeader {
@@ -278,7 +285,50 @@
       line-height: 1.5;
     }
 
-    @media (max-width: 720px) {
+    .activity {
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .log {
+      display: grid;
+      gap: 0.6rem;
+      max-height: 36rem;
+      overflow: auto;
+      padding-right: 0.15rem;
+    }
+
+    .logItem {
+      background: #15171b;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      line-height: 1.45;
+      padding: 0.75rem;
+    }
+
+    .logItem strong {
+      color: var(--text);
+      display: block;
+      font-size: 0.84rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .logItem.active {
+      border-color: rgba(75, 215, 192, 0.6);
+      color: var(--text);
+    }
+
+    .logItem.done {
+      border-color: rgba(130, 220, 143, 0.48);
+    }
+
+    .logItem.error {
+      border-color: rgba(244, 117, 102, 0.58);
+      color: #ffd8d4;
+    }
+
+    @media (max-width: 880px) {
       .shell {
         padding: 1rem;
       }
@@ -290,6 +340,10 @@
 
       .status {
         min-width: 0;
+      }
+
+      .workbench {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -307,40 +361,57 @@
       </div>
     </section>
 
-    <section class="panel">
-      <div class="panelHeader">
-        <div>
-          <p class="kicker">Agent</p>
-          <h2>Mission Update</h2>
-        </div>
-      </div>
-
-      <form id="agentForm">
-        <label for="task">Task</label>
-        <textarea id="task">{{ default_task }}</textarea>
-        <div class="toolRow">
+    <section class="workbench">
+      <div class="panel">
+        <div class="panelHeader">
           <div>
-            <strong>ISS location tool</strong>
-            <p id="toolDescription">The agent can call live ISS location data before answering.</p>
+            <p class="kicker">Agent</p>
+            <h2>Mission Update</h2>
           </div>
-          <button class="toolToggle active" type="button" id="toolToggle">Tool on</button>
         </div>
-        <div class="actions">
-          <button type="submit" id="runButton">Run agent</button>
-          <button class="secondary" type="button" id="resetButton">Reset</button>
-        </div>
-      </form>
 
-      <div id="answer" class="empty">
-        Run the production agent to generate a mission-control update.
-      </div>
-      <div id="visualization" class="visualization">
-        <div class="visualizationHeader">
-          <strong id="visualizationTitle">Current ISS position</strong>
-          <span id="visualizationMeta"></span>
+        <form id="agentForm">
+          <label for="task">Task</label>
+          <textarea id="task">{{ default_task }}</textarea>
+          <div class="toolRow">
+            <div>
+              <strong>ISS location tool</strong>
+              <p id="toolDescription">The agent can call live ISS location data before answering.</p>
+            </div>
+            <button class="toolToggle active" type="button" id="toolToggle">Tool on</button>
+          </div>
+          <div class="actions">
+            <button type="submit" id="runButton">Run agent</button>
+            <button class="secondary" type="button" id="resetButton">Reset</button>
+          </div>
+        </form>
+
+        <div id="answer" class="empty">
+          Run the production agent to generate a mission-control update.
         </div>
-        <iframe id="visualizationMap" title="ISS position map" loading="lazy"></iframe>
+        <div id="visualization" class="visualization">
+          <div class="visualizationHeader">
+            <strong id="visualizationTitle">Current ISS position</strong>
+            <span id="visualizationMeta"></span>
+          </div>
+          <iframe id="visualizationMap" title="ISS position map" loading="lazy"></iframe>
+        </div>
       </div>
+
+      <aside class="panel activity">
+        <div class="panelHeader">
+          <div>
+            <p class="kicker">Live Trace</p>
+            <h2>Agent Activity</h2>
+          </div>
+        </div>
+        <div id="activityLog" class="log">
+          <div class="logItem">
+            <strong>Idle</strong>
+            Run the agent to see model and tool activity.
+          </div>
+        </div>
+      </aside>
     </section>
 
     <div id="errorBox" class="errorBox" style="display: none;"></div>
@@ -360,6 +431,7 @@
     const visualizationTitle = document.getElementById("visualizationTitle");
     const visualizationMeta = document.getElementById("visualizationMeta");
     const visualizationMap = document.getElementById("visualizationMap");
+    const activityLog = document.getElementById("activityLog");
     let toolsEnabled = true;
 
     function setStatus(text, isError = false) {
@@ -405,6 +477,51 @@
       visualizationMap.src = item.map_url;
     }
 
+    function resetActivityLog() {
+      activityLog.innerHTML = "";
+    }
+
+    function addActivity(title, message, state = "") {
+      const item = document.createElement("div");
+      item.className = `logItem ${state}`.trim();
+      const heading = document.createElement("strong");
+      heading.textContent = title;
+      item.appendChild(heading);
+      item.append(document.createTextNode(message));
+      activityLog.appendChild(item);
+      activityLog.scrollTop = activityLog.scrollHeight;
+    }
+
+    function handleRunEvent(event) {
+      if (event.type === "run_start") {
+        addActivity("Run started", event.message, "active");
+      } else if (event.type === "model_start") {
+        addActivity("Model", event.message, "active");
+      } else if (event.type === "tool_start") {
+        addActivity("Tool call", event.message, "active");
+      } else if (event.type === "tool_done") {
+        addActivity("Tool complete", event.message, "done");
+      } else if (event.type === "run_done") {
+        addActivity("Done", event.message, "done");
+        renderAgentResult(event.result);
+      } else if (event.type === "error") {
+        addActivity("Error", event.message, "error");
+        throw new Error(event.message);
+      }
+    }
+
+    function renderAgentResult(data) {
+      answer.className = "answer";
+      answer.textContent = data.answer;
+      const modelLabel = document.createElement("span");
+      const toolsLabel = data.used_tools.length
+        ? `used: ${data.used_tools.join(", ")}`
+        : "used: none";
+      modelLabel.textContent = `${data.model} | ${toolsLabel}`;
+      answer.appendChild(modelLabel);
+      renderVisualization(data.visualizations);
+    }
+
     async function runAgent(event) {
       event.preventDefault();
       setError("");
@@ -414,9 +531,10 @@
       answer.className = "empty";
       answer.textContent = "Waiting for agent output...";
       clearVisualization();
+      resetActivityLog();
 
       try {
-        const response = await fetch("/api/run", {
+        const response = await fetch("/api/run_events", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -424,20 +542,31 @@
             tools_enabled: toolsEnabled,
           }),
         });
-        const data = await response.json();
-        if (!response.ok || !data.ok) {
-          throw new Error(data.error || "Agent run failed.");
+        if (!response.ok || !response.body) {
+          throw new Error("Agent run failed.");
         }
 
-        answer.className = "answer";
-        answer.textContent = data.answer;
-        const modelLabel = document.createElement("span");
-        const toolsLabel = data.used_tools.length
-          ? `used: ${data.used_tools.join(", ")}`
-          : "used: none";
-        modelLabel.textContent = `${data.model} | ${toolsLabel}`;
-        answer.appendChild(modelLabel);
-        renderVisualization(data.visualizations);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let streamDone = false;
+
+        while (!streamDone) {
+          const chunk = await reader.read();
+          streamDone = chunk.done;
+          buffer += decoder.decode(chunk.value || new Uint8Array(), { stream: !streamDone });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const event = JSON.parse(line);
+            if (event.type !== "stream_end") {
+              handleRunEvent(event);
+            }
+          }
+        }
+
         setStatus("Mission update complete.");
       } catch (error) {
         setStatus("Agent run failed.", true);
@@ -462,6 +591,12 @@
       toolsEnabled = true;
       renderToolToggle();
       clearVisualization();
+      activityLog.innerHTML = `
+        <div class="logItem">
+          <strong>Idle</strong>
+          Run the agent to see model and tool activity.
+        </div>
+      `;
       answer.className = "empty";
       answer.textContent = "Run the production agent to generate a mission-control update.";
       setError("");

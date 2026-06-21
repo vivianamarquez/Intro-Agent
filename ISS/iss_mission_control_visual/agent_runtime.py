@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
+from collections.abc import Callable
 from typing import Any
 
 import requests
@@ -102,6 +103,11 @@ def progress(message: str) -> None:
     print(f"[progress] {message}", file=sys.stderr, flush=True)
 
 
+def emit_event(on_event: Callable[[dict[str, Any]], None] | None, event: dict[str, Any]) -> None:
+    if on_event:
+        on_event(event)
+
+
 def map_url(latitude: float, longitude: float) -> str:
     span = 35
     min_lon = max(-180, longitude - span)
@@ -121,6 +127,7 @@ def build_agent(
     tools_enabled: bool,
     visualizations: list[dict[str, Any]],
     used_tools: list[str],
+    on_event: Callable[[dict[str, Any]], None] | None,
 ) -> Agent:
     @function_tool
     def get_iss_location() -> dict:
@@ -128,6 +135,14 @@ def build_agent(
         progress("Calling get_iss_location tool")
         logger.info("Fetching live ISS location")
         used_tools.append(LOCATION_TOOL_NAME)
+        emit_event(
+            on_event,
+            {
+                "type": "tool_start",
+                "message": "Calling get_iss_location",
+                "tool": LOCATION_TOOL_NAME,
+            },
+        )
 
         try:
             location = iss_client.get_location()
@@ -137,6 +152,14 @@ def build_agent(
 
         logger.info("ISS location lookup succeeded")
         progress("ISS data received")
+        emit_event(
+            on_event,
+            {
+                "type": "tool_done",
+                "message": "Live ISS data received",
+                "tool": LOCATION_TOOL_NAME,
+            },
+        )
         return location
 
     @function_tool
@@ -145,6 +168,14 @@ def build_agent(
         progress("Calling visualize_iss_location tool")
         logger.info("Creating live ISS map visualization")
         used_tools.append(VISUALIZATION_TOOL_NAME)
+        emit_event(
+            on_event,
+            {
+                "type": "tool_start",
+                "message": "Calling visualize_iss_location",
+                "tool": VISUALIZATION_TOOL_NAME,
+            },
+        )
 
         try:
             location = iss_client.get_location()
@@ -161,6 +192,14 @@ def build_agent(
         }
         visualizations.append(visualization)
         progress("ISS visualization ready")
+        emit_event(
+            on_event,
+            {
+                "type": "tool_done",
+                "message": "ISS map visualization ready",
+                "tool": VISUALIZATION_TOOL_NAME,
+            },
+        )
         return visualization
 
     if tools_enabled:
@@ -189,21 +228,42 @@ def build_agent(
     )
 
 
-async def run_agent(task: str, tools_enabled: bool) -> dict[str, Any]:
+async def run_agent(
+    task: str,
+    tools_enabled: bool,
+    on_event: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     settings = Settings.from_env()
     client = ISSLocationClient(timeout_seconds=settings.timeout_seconds)
     visualizations: list[dict[str, Any]] = []
     used_tools: list[str] = []
+    emit_event(
+        on_event,
+        {
+            "type": "run_start",
+            "message": "Starting agent run",
+            "tools_enabled": tools_enabled,
+        },
+    )
     agent = build_agent(
         settings,
         client,
         tools_enabled=tools_enabled,
         visualizations=visualizations,
         used_tools=used_tools,
+        on_event=on_event,
+    )
+    emit_event(
+        on_event,
+        {
+            "type": "model_start",
+            "message": f"Sending task to {settings.model}",
+            "model": settings.model,
+        },
     )
     result = await Runner.run(agent, task)
 
-    return {
+    final_result = {
         "answer": result.final_output or "",
         "model": settings.model,
         "tools_enabled": tools_enabled,
@@ -213,3 +273,12 @@ async def run_agent(task: str, tools_enabled: bool) -> dict[str, Any]:
         "used_tools": used_tools,
         "visualizations": visualizations,
     }
+    emit_event(
+        on_event,
+        {
+            "type": "run_done",
+            "message": "Final answer ready",
+            "result": final_result,
+        },
+    )
+    return final_result

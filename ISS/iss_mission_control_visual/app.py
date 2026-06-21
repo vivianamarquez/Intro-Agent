@@ -16,9 +16,12 @@ Then open:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+import queue
+import threading
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 import agent_runtime
 
@@ -44,6 +47,41 @@ def api_run():
         return jsonify({"ok": True, **result})
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 502
+
+
+@app.post("/api/run_events")
+def api_run_events():
+    body = request.get_json(silent=True) or {}
+    task = (body.get("task") or DEFAULT_TASK).strip() or DEFAULT_TASK
+    tools_enabled = bool(body.get("tools_enabled", True))
+    event_queue: queue.Queue[dict] = queue.Queue()
+
+    def put_event(event: dict) -> None:
+        event_queue.put(event)
+
+    def worker() -> None:
+        try:
+            asyncio.run(
+                agent_runtime.run_agent(
+                    task,
+                    tools_enabled=tools_enabled,
+                    on_event=put_event,
+                )
+            )
+        except Exception as exc:
+            put_event({"type": "error", "message": str(exc)})
+        finally:
+            put_event({"type": "stream_end"})
+
+    def stream():
+        threading.Thread(target=worker, daemon=True).start()
+        while True:
+            event = event_queue.get()
+            yield json.dumps(event) + "\n"
+            if event.get("type") == "stream_end":
+                break
+
+    return Response(stream(), mimetype="application/x-ndjson")
 
 
 if __name__ == "__main__":
