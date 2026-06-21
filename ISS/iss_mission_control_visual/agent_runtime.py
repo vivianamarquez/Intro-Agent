@@ -18,7 +18,8 @@ from dotenv import load_dotenv
 
 
 DEFAULT_MODEL = "gpt-4.1-mini"
-TOOL_NAME = "get_iss_location"
+LOCATION_TOOL_NAME = "get_iss_location"
+VISUALIZATION_TOOL_NAME = "visualize_iss_location"
 
 logger = logging.getLogger("iss_mission_control_visual")
 
@@ -101,16 +102,32 @@ def progress(message: str) -> None:
     print(f"[progress] {message}", file=sys.stderr, flush=True)
 
 
+def map_url(latitude: float, longitude: float) -> str:
+    span = 35
+    min_lon = max(-180, longitude - span)
+    min_lat = max(-85, latitude - span)
+    max_lon = min(180, longitude + span)
+    max_lat = min(85, latitude + span)
+    return (
+        "https://www.openstreetmap.org/export/embed.html"
+        f"?bbox={min_lon}%2C{min_lat}%2C{max_lon}%2C{max_lat}"
+        f"&layer=mapnik&marker={latitude}%2C{longitude}"
+    )
+
+
 def build_agent(
     settings: Settings,
     iss_client: ISSLocationClient,
     tools_enabled: bool,
+    visualizations: list[dict[str, Any]],
+    used_tools: list[str],
 ) -> Agent:
     @function_tool
     def get_iss_location() -> dict:
         """Get the current place name, latitude, longitude, altitude, and speed of the International Space Station."""
         progress("Calling get_iss_location tool")
         logger.info("Fetching live ISS location")
+        used_tools.append(LOCATION_TOOL_NAME)
 
         try:
             location = iss_client.get_location()
@@ -122,12 +139,40 @@ def build_agent(
         progress("ISS data received")
         return location
 
+    @function_tool
+    def visualize_iss_location() -> dict:
+        """Create a map visualization for the current International Space Station location."""
+        progress("Calling visualize_iss_location tool")
+        logger.info("Creating live ISS map visualization")
+        used_tools.append(VISUALIZATION_TOOL_NAME)
+
+        try:
+            location = iss_client.get_location()
+        except requests.RequestException as exc:
+            logger.exception("ISS visualization lookup failed")
+            raise RuntimeError("Could not fetch live ISS location data.") from exc
+
+        visualization = {
+            "title": "Current ISS position",
+            "place_name": location["place_name"],
+            "latitude": location["latitude"],
+            "longitude": location["longitude"],
+            "map_url": map_url(location["latitude"], location["longitude"]),
+        }
+        visualizations.append(visualization)
+        progress("ISS visualization ready")
+        return visualization
+
     if tools_enabled:
         tool_instructions = (
-            "You have access to get_iss_location. "
-            "Use it before answering live ISS location questions. "
+            "You have access to get_iss_location and visualize_iss_location. "
+            "Use get_iss_location before answering live ISS location questions. "
+            "Use visualize_iss_location when the user asks to see, map, or visualize where the ISS is. "
+            "Do not include raw map URLs in your final answer; the app renders maps separately. "
+            "Do not ask follow-up questions or offer visuals at the end. "
+            "If a visualization is useful, call the visualization tool directly instead of asking. "
         )
-        tools = [get_iss_location]
+        tools = [get_iss_location, visualize_iss_location]
     else:
         tool_instructions = ""
         tools = []
@@ -147,12 +192,24 @@ def build_agent(
 async def run_agent(task: str, tools_enabled: bool) -> dict[str, Any]:
     settings = Settings.from_env()
     client = ISSLocationClient(timeout_seconds=settings.timeout_seconds)
-    agent = build_agent(settings, client, tools_enabled=tools_enabled)
+    visualizations: list[dict[str, Any]] = []
+    used_tools: list[str] = []
+    agent = build_agent(
+        settings,
+        client,
+        tools_enabled=tools_enabled,
+        visualizations=visualizations,
+        used_tools=used_tools,
+    )
     result = await Runner.run(agent, task)
 
     return {
         "answer": result.final_output or "",
         "model": settings.model,
         "tools_enabled": tools_enabled,
-        "available_tools": [TOOL_NAME] if tools_enabled else [],
+        "available_tools": (
+            [LOCATION_TOOL_NAME, VISUALIZATION_TOOL_NAME] if tools_enabled else []
+        ),
+        "used_tools": used_tools,
+        "visualizations": visualizations,
     }

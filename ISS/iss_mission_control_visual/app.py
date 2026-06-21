@@ -5,6 +5,9 @@ Run from the repo root:
     python -m pip install -r ISS/iss_mission_control_visual/requirements.txt
     python ISS/iss_mission_control_visual/app.py
 
+If the port is already in use, kill the process:
+lsof -ti tcp:5050 | xargs kill     
+
 Then open:
 
     http://localhost:5050
@@ -20,7 +23,7 @@ from flask import Flask, jsonify, render_template, request
 import agent_runtime
 
 
-DEFAULT_TASK = "Give me a current ISS mission update."
+DEFAULT_TASK = "Give me a current ISS mission update and show me where it is."
 
 app = Flask(__name__)
 

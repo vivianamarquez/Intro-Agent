@@ -230,6 +230,40 @@
       margin-top: 0.85rem;
     }
 
+    .visualization {
+      background: #15171b;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: none;
+      margin-top: 1rem;
+      overflow: hidden;
+    }
+
+    .visualizationHeader {
+      align-items: baseline;
+      display: flex;
+      gap: 0.75rem;
+      justify-content: space-between;
+      padding: 0.9rem 1rem;
+    }
+
+    .visualizationHeader strong {
+      display: block;
+    }
+
+    .visualizationHeader span {
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .visualization iframe {
+      border: 0;
+      display: block;
+      height: 22rem;
+      width: 100%;
+    }
+
     .empty {
       background: #15171b;
       border: 1px dashed var(--line);
@@ -300,6 +334,13 @@
       <div id="answer" class="empty">
         Run the production agent to generate a mission-control update.
       </div>
+      <div id="visualization" class="visualization">
+        <div class="visualizationHeader">
+          <strong id="visualizationTitle">Current ISS position</strong>
+          <span id="visualizationMeta"></span>
+        </div>
+        <iframe id="visualizationMap" title="ISS position map" loading="lazy"></iframe>
+      </div>
     </section>
 
     <div id="errorBox" class="errorBox" style="display: none;"></div>
@@ -315,6 +356,10 @@
     const runButton = document.getElementById("runButton");
     const toolToggle = document.getElementById("toolToggle");
     const toolDescription = document.getElementById("toolDescription");
+    const visualization = document.getElementById("visualization");
+    const visualizationTitle = document.getElementById("visualizationTitle");
+    const visualizationMeta = document.getElementById("visualizationMeta");
+    const visualizationMap = document.getElementById("visualizationMap");
     let toolsEnabled = true;
 
     function setStatus(text, isError = false) {
@@ -336,8 +381,28 @@
       toolToggle.classList.toggle("active", toolsEnabled);
       toolToggle.textContent = toolsEnabled ? "Tool on" : "Tool off";
       toolDescription.textContent = toolsEnabled
-        ? "The agent can call live ISS location data before answering."
-        : "The agent has to answer without live ISS location data.";
+        ? "The agent can call live ISS data and create a map visualization."
+        : "The agent has to answer without live ISS tools.";
+    }
+
+    function clearVisualization() {
+      visualization.style.display = "none";
+      visualizationTitle.textContent = "Current ISS position";
+      visualizationMeta.textContent = "";
+      visualizationMap.removeAttribute("src");
+    }
+
+    function renderVisualization(items) {
+      const item = Array.isArray(items) && items.length ? items[items.length - 1] : null;
+      if (!item || !item.map_url) {
+        clearVisualization();
+        return;
+      }
+
+      visualization.style.display = "block";
+      visualizationTitle.textContent = item.title || "Current ISS position";
+      visualizationMeta.textContent = `${item.place_name} | ${item.latitude}, ${item.longitude}`;
+      visualizationMap.src = item.map_url;
     }
 
     async function runAgent(event) {
@@ -348,6 +413,7 @@
       toolToggle.disabled = true;
       answer.className = "empty";
       answer.textContent = "Waiting for agent output...";
+      clearVisualization();
 
       try {
         const response = await fetch("/api/run", {
@@ -366,11 +432,12 @@
         answer.className = "answer";
         answer.textContent = data.answer;
         const modelLabel = document.createElement("span");
-        const toolsLabel = data.available_tools.length
-          ? `tool: ${data.available_tools.join(", ")}`
-          : "tools: none";
+        const toolsLabel = data.used_tools.length
+          ? `used: ${data.used_tools.join(", ")}`
+          : "used: none";
         modelLabel.textContent = `${data.model} | ${toolsLabel}`;
         answer.appendChild(modelLabel);
+        renderVisualization(data.visualizations);
         setStatus("Mission update complete.");
       } catch (error) {
         setStatus("Agent run failed.", true);
@@ -394,6 +461,7 @@
       task.value = defaultTask;
       toolsEnabled = true;
       renderToolToggle();
+      clearVisualization();
       answer.className = "empty";
       answer.textContent = "Run the production agent to generate a mission-control update.";
       setError("");
