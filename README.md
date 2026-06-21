@@ -1,129 +1,28 @@
 # Intro Agent
 
-This repo continues the agent-building work from Intro API.
+This repo continues the agent-building work from [Intro API](https://github.com/vivianamarquez/Intro-API).
 
-The `ISS/` folder shows the same International Space Station agent idea in three forms:
+The goal is to move from calling APIs directly toward building agentic apps: programs where a model can reason, call tools, use external data, and return a useful final answer.
 
-1. A notebook version using the OpenAI Agents SDK
-2. A terminal script version
-3. A small visual UI version
+## Modules
 
-The point is not that the ISS example needs a huge framework. The point is to compare what it feels like to build the agent loop ourselves versus using an SDK that handles more of the plumbing.
+### `ISS/`
 
-## What This Builds On
+The `ISS/` folder rebuilds the International Space Station agent from the manual agent-loop lesson, but now with the OpenAI Agents SDK.
 
-In [`04_Building_an_Agent_Loop.ipynb`](https://github.com/vivianamarquez/Intro-API/blob/main/04_Building_an_Agent_Loop.ipynb), we built an agent loop manually.
+It includes:
 
-That meant we had to manage details like:
+- a notebook version for learning the SDK step by step
+- a terminal script version for running the agent from the command line
+- a visual UI version for interacting with the same agent in a local web app
 
-- calling the OpenAI API directly
-- describing tools with JSON schemas
-- checking whether the model wanted to call a tool
-- running the matching Python function ourselves
-- sending the tool result back to the model
-- keeping track of the conversation loop
-- deciding when the loop was finished
-
-That was useful because it showed what an agent actually is: a model, a set of tools, and a loop that lets the model decide when to use those tools.
-
-## Why Use the OpenAI Agents SDK?
-
-The OpenAI Agents SDK lets us keep the same idea but write less infrastructure code.
-
-Instead of manually building the tool schema and agent loop, we can write a normal Python function and decorate it:
-
-```python
-@function_tool
-def get_iss_location() -> dict:
-    ...
-```
-
-Then the SDK can expose that function to the agent as a tool.
-
-So instead of manually doing all of this:
-
-```python
-response = requests.post(
-    openai_url,
-    headers=headers,
-    json={
-        "model": MODEL,
-        "input": messages,
-        "tools": tools,
-    },
-)
-```
-
-and then writing the loop that detects tool calls, runs functions, and sends tool results back, we can define:
-
-```python
-agent = Agent(
-    name="ISS Mission Control",
-    instructions="Use the ISS location tool before answering.",
-    model=MODEL,
-    tools=[get_iss_location],
-)
-
-result = await Runner.run(agent, task)
-```
-
-The SDK does not make the concept different. It packages the same pattern in a cleaner way:
-
-- `Agent` defines the model, instructions, and tools
-- `@function_tool` turns a Python function into a model-callable tool
-- `Runner` runs the agent loop for us
-
-For learning, building the loop manually first is helpful. For real projects, the SDK is usually nicer because it reduces repeated boilerplate and makes the code easier to extend.
-
-## ISS Folder
-
-### `ISS/Building_an_Agent_OpenAI_Agents_SDK.ipynb`
-
-This notebook is the same core agent from [`04_Building_an_Agent_Loop.ipynb`](https://github.com/vivianamarquez/Intro-API/blob/main/04_Building_an_Agent_Loop.ipynb), but rebuilt with the OpenAI Agents SDK.
-
-Use this when you want to see the side-by-side learning jump:
-
-- before: manually call the API and manage the agent loop
-- now: use `Agent`, `Runner`, and `@function_tool`
-
-### `ISS/iss_mission_control_production.py`
-
-This is the script version of the notebook.
-
-A script is useful because you can run it from the terminal without opening Jupyter:
-
-```bash
-python ISS/iss_mission_control_production.py
-```
-
-You can also pass in your own task:
-
-```bash
-python ISS/iss_mission_control_production.py "Where is the ISS right now?"
-```
-
-This makes the agent easier to reuse, test, automate, or run as part of a larger workflow. Notebooks are great for learning and exploration. Scripts are better when you want something repeatable.
-
-### `ISS/iss_mission_control_visual/`
-
-This folder contains the same ISS agent idea, but with a local web UI.
-
-It uses Flask for the interface and the OpenAI Agents SDK for the agent runtime.
-
-Run it from the repo root:
-
-```bash
-python -m pip install -r ISS/iss_mission_control_visual/requirements.txt
-python ISS/iss_mission_control_visual/app.py
-```
-
-Then open:
+Start here:
 
 ```text
-http://localhost:5050
+ISS/README.md
 ```
 
-The UI version is useful because it shows how the same agent logic can move from a notebook, to a terminal script, to an interactive app.
+More modules will be added here as the repo grows.
 
 ## Setup
 
@@ -134,14 +33,4 @@ OPENAI_API_KEY=your-key-here
 OPENAI_MODEL=gpt-4.1-mini
 ```
 
-Install the main dependencies:
-
-```bash
-pip install openai-agents python-dotenv requests
-```
-
-For the visual UI, install the UI dependencies:
-
-```bash
-python -m pip install -r ISS/iss_mission_control_visual/requirements.txt
-```
+Each module may have its own extra setup instructions in its folder.
