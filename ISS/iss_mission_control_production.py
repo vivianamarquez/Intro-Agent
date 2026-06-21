@@ -29,10 +29,10 @@ import sys
 from dataclasses import dataclass
 from typing import Any
 
-import requests
-from agents import Agent, Runner, function_tool
-from dotenv import load_dotenv
-from openai.types.responses import ResponseTextDeltaEvent
+import requests  # pip install requests
+from agents import Agent, Runner, function_tool # pip install openai-agents
+from dotenv import load_dotenv  # pip install python-dotenv
+from openai.types.responses import ResponseTextDeltaEvent  # pip install openai-agents
 
 
 DEFAULT_TASK = (
