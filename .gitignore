@@ -9,8 +9,6 @@
 # Python
 __pycache__/
 *.py[cod]
-.skyfield-data/
-ISS/iss_viewing_coach/.skyfield-data/
 .venv
 env/
 venv/

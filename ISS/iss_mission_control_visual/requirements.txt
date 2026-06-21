@@ -1,5 +1,4 @@
+flask
 openai-agents
 python-dotenv
 requests
-skyfield
-urllib3<2.1
