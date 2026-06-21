@@ -129,11 +129,7 @@ def build_agent(
         )
         tools = [get_iss_location]
     else:
-        tool_instructions = (
-            "You do not have access to live ISS location tools in this run. "
-            "If the user asks for the current ISS location, say that you cannot "
-            "verify it without the tool and avoid inventing coordinates. "
-        )
+        tool_instructions = ""
         tools = []
 
     return Agent(
