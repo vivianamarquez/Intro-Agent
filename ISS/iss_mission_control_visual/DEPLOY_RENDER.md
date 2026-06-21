@@ -2,11 +2,7 @@
 
 This Flask app can be deployed to Render as a Web Service.
 
-Live site:
-
-```text
-https://iss-mission-control.onrender.com/
-```
+Live site: [ISS Mission Control](https://iss-mission-control.onrender.com/)
 
 ## 1. Confirm dependencies
 
