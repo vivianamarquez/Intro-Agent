@@ -44,3 +44,15 @@ Then open:
 ```text
 http://localhost:5051
 ```
+
+Or you can stop whatever is already using port `5050`:
+
+```bash
+lsof -ti tcp:5050 | xargs kill
+```
+
+Then run the app again:
+
+```bash
+python ISS/iss_mission_control_visual/app.py
+```

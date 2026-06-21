@@ -75,41 +75,6 @@ The SDK does not make the concept different. It packages the same pattern in a c
 
 For learning, building the loop manually first is helpful. For real projects, the SDK is usually nicer because it reduces repeated boilerplate and makes the code easier to extend.
 
-## Files
-
-### `Building_an_Agent_OpenAI_Agents_SDK.ipynb`
-
-This notebook is the same core idea as [`04_Building_an_Agent_Loop.ipynb`](https://github.com/vivianamarquez/Intro-API/blob/main/04_Building_an_Agent_Loop.ipynb), but rebuilt with the OpenAI Agents SDK.
-
-Use this when you want to see the side-by-side learning jump:
-
-- before: manually call the API and manage the agent loop
-- now: use `Agent`, `Runner`, and `@function_tool`
-
-### `iss_mission_control_production.py`
-
-This is the script version of the notebook.
-
-A script is useful because you can run it from the terminal without opening Jupyter:
-
-```bash
-python ISS/iss_mission_control_production.py
-```
-
-You can also pass in your own task:
-
-```bash
-python ISS/iss_mission_control_production.py "Where is the ISS right now?"
-```
-
-This makes the agent easier to reuse, test, automate, or run as part of a larger workflow. Notebooks are great for learning and exploration. Scripts are better when you want something repeatable.
-
-### `iss_mission_control_visual/`
-
-This folder contains the same ISS agent idea, but with a local web UI.
-
-See [`iss_mission_control_visual/README.md`](iss_mission_control_visual/README.md) for run instructions.
-
 ## Setup
 
 Create a `.env` file in the repo root:
