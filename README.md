@@ -47,6 +47,16 @@ Run it from the repo root:
 python mcp_agent_production.py
 ```
 
+### 4. Using RAG
+
+The root-level `rag_agent_production.py` script shows a very simple retrieval-augmented generation pattern. It searches a tiny local knowledge base first, then answers from the retrieved notes.
+
+Run it from the repo root:
+
+```bash
+python rag_agent_production.py
+```
+
 ---
 
 
