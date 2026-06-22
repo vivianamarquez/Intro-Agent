@@ -36,6 +36,17 @@ Run it from the repo root:
 python web_search_agent_production.py
 ```
 
+### 3. Using a Google Calendar MCP tool
+
+The root-level `mcp_agent_production.py` script shows a very simple agent that uses the Google Calendar MCP connector.
+It also sends the current date and timezone to the agent so questions like "Wednesday" mean the upcoming Wednesday.
+
+Run it from the repo root:
+
+```bash
+python mcp_agent_production.py
+```
+
 ---
 
 
@@ -46,6 +57,7 @@ Create a `.env` file:
 ```bash
 OPENAI_API_KEY=your-key-here
 OPENAI_MODEL=gpt-4.1-mini
+GOOGLE_CALENDAR_OAUTH_ACCESS_TOKEN=your-google-oauth-access-token
 ```
 
-Each module may have its own extra setup instructions in its folder.
+The Google Calendar token is only needed for the MCP connector example. Each module may have its own extra setup instructions in its folder.
