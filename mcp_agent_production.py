@@ -1,4 +1,5 @@
 """Beginner-friendly Google Calendar MCP agent.
+https://developers.openai.com/api/docs/guides/tools-connectors-mcp
 
 Run from the repo root:
 
