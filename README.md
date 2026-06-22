@@ -4,9 +4,11 @@ This repo continues the agent-building work from [Intro API](https://github.com/
 
 The goal is to move from calling APIs directly toward building agentic apps: programs where a model can reason, call tools, use external data, and return a useful final answer.
 
-## Modules
+---
 
-### `ISS/`
+## Practice
+
+### 1. `ISS/`
 
 The `ISS/` folder rebuilds the International Space Station agent from the manual agent-loop lesson, but now with the OpenAI Agents SDK.
 
@@ -23,6 +25,19 @@ ISS/README.md
 ```
 
 More modules will be added here as the repo grows.
+
+### 2. Using web search
+
+The root-level `web_search_agent_production.py` script shows a very simple agent that uses the OpenAI Agents SDK hosted web search tool.
+
+Run it from the repo root:
+
+```bash
+python web_search_agent_production.py
+```
+
+---
+
 
 ## Setup
 
